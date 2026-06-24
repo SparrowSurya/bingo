@@ -381,6 +381,46 @@ function joinGameRoom() {
 // RENDER & UI UPDATES
 // -------------------------------------------------------------
 
+function countCompletedLines(marked: boolean[]): number {
+  if (!marked) return 0;
+  let count = 0;
+  // rows
+  for (let r = 0; r < 5; r++) {
+    let completed = true;
+    for (let c = 0; c < 5; c++) {
+      if (!marked[r * 5 + c]) { completed = false; break; }
+    }
+    if (completed) count++;
+  }
+  // cols
+  for (let c = 0; c < 5; c++) {
+    let completed = true;
+    for (let r = 0; r < 5; r++) {
+      if (!marked[r * 5 + c]) { completed = false; break; }
+    }
+    if (completed) count++;
+  }
+  // diag1
+  let diag1 = true;
+  for (let i = 0; i < 5; i++) {
+    if (!marked[i * 5 + i]) { diag1 = false; break; }
+  }
+  if (diag1) count++;
+  // diag2
+  let diag2 = true;
+  for (let i = 0; i < 5; i++) {
+    if (!marked[i * 5 + (4 - i)]) { diag2 = false; break; }
+  }
+  if (diag2) count++;
+  return count;
+}
+
+function getBingoString(lines: number): string {
+  if (lines <= 0) return '';
+  const letters = 'BINGO'.substring(0, Math.min(5, lines)).split('').join('-');
+  return ` [${letters}]`;
+}
+
 function updateRoomUI(state: RoomStatePayload) {
   currentRoomState = state;
   roomCode = state.roomCode;
@@ -396,7 +436,8 @@ function updateRoomUI(state: RoomStatePayload) {
 
   // Render "Me" section
   if (me) {
-    myUsername.textContent = `${me.username} (You)`;
+    const myLines = me.marked ? countCompletedLines(me.marked) : 0;
+    myUsername.textContent = `${me.username} (You)${getBingoString(myLines)}`;
     myStatusBadge.textContent = me.ready ? 'READY' : 'SETUP';
     if (me.ready) {
       myStatusBadge.classList.add('ready');
@@ -421,7 +462,8 @@ function updateRoomUI(state: RoomStatePayload) {
 
   // Render "Opponent" section
   if (opponent) {
-    opponentUsername.textContent = opponent.username;
+    const oppLines = opponent.marked ? countCompletedLines(opponent.marked) : 0;
+    opponentUsername.textContent = `${opponent.username}${getBingoString(oppLines)}`;
     opponentStatusBadge.textContent = opponent.ready ? 'READY' : 'SETUP';
     if (opponent.ready) {
       opponentStatusBadge.classList.add('ready');

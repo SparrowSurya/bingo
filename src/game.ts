@@ -11,54 +11,63 @@ export function validateGrid(grid: number[] | null): boolean {
 }
 
 /**
- * Checks if the marked grid has any completed line (row, col, or diagonal).
+ * Counts the number of completed lines (rows, columns, or diagonals).
  */
-export function checkWin(marked: boolean[]): boolean {
+export function countCompletedLines(marked: boolean[]): number {
+  let count = 0;
+
   // Check rows
   for (let r = 0; r < 5; r++) {
-    let rowWon = true;
+    let rowCompleted = true;
     for (let c = 0; c < 5; c++) {
       if (!marked[r * 5 + c]) {
-        rowWon = false;
+        rowCompleted = false;
         break;
       }
     }
-    if (rowWon) return true;
+    if (rowCompleted) count++;
   }
 
   // Check columns
   for (let c = 0; c < 5; c++) {
-    let colWon = true;
+    let colCompleted = true;
     for (let r = 0; r < 5; r++) {
       if (!marked[r * 5 + c]) {
-        colWon = false;
+        colCompleted = false;
         break;
       }
     }
-    if (colWon) return true;
+    if (colCompleted) count++;
   }
 
   // Check main diagonal (top-left to bottom-right)
-  let diag1Won = true;
+  let diag1Completed = true;
   for (let i = 0; i < 5; i++) {
     if (!marked[i * 5 + i]) {
-      diag1Won = false;
+      diag1Completed = false;
       break;
     }
   }
-  if (diag1Won) return true;
+  if (diag1Completed) count++;
 
   // Check anti-diagonal (top-right to bottom-left)
-  let diag2Won = true;
+  let diag2Completed = true;
   for (let i = 0; i < 5; i++) {
     if (!marked[i * 5 + (4 - i)]) {
-      diag2Won = false;
+      diag2Completed = false;
       break;
     }
   }
-  if (diag2Won) return true;
+  if (diag2Completed) count++;
 
-  return false;
+  return count;
+}
+
+/**
+ * Checks if the player has won (completed at least 5 lines).
+ */
+export function checkWin(marked: boolean[]): boolean {
+  return countCompletedLines(marked) >= 5;
 }
 
 export class BingoRoom {

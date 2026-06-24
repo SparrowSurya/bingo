@@ -39,17 +39,17 @@ function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed easy-to-confuse characters (I, O, 0, 1)
   let length = 4;
   let attempts = 0;
-  
+
   while (true) {
     let code = '';
     for (let i = 0; i < length; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
+
     if (!rooms.has(code)) {
       return code;
     }
-    
+
     attempts++;
     if (attempts >= 10) {
       length++;
@@ -59,6 +59,7 @@ function generateRoomCode(): string {
 }
 
 // Start Bun Serve
+const HOSTNAME = process.env.HOSTNAME || '127.0.0.1';
 const PORT = process.env.PORT || 3000;
 
 interface WebSocketData {
@@ -69,15 +70,15 @@ interface WebSocketData {
 
 const server = Bun.serve<WebSocketData>({
   port: PORT,
-  
+  hostname: HOSTNAME,
   fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;
-    
+
     // Serve HTML (Home / Landing and Room route fallback for SPA)
     if (path === '/' || path.startsWith('/room/')) {
       return new Response(Bun.file('./public/index.html'), {
-        headers: { 
+        headers: {
           'Content-Type': 'text/html',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
           'Pragma': 'no-cache',
@@ -85,11 +86,11 @@ const server = Bun.serve<WebSocketData>({
         }
       });
     }
-    
+
     // Serve CSS
     if (path === '/style.css') {
       return new Response(Bun.file('./public/style.css'), {
-        headers: { 
+        headers: {
           'Content-Type': 'text/css',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
           'Pragma': 'no-cache',
@@ -97,11 +98,11 @@ const server = Bun.serve<WebSocketData>({
         }
       });
     }
-    
+
     // Serve Bundled Client JS
     if (path === '/client.js') {
       return new Response(clientJsText, {
-        headers: { 
+        headers: {
           'Content-Type': 'text/javascript',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
           'Pragma': 'no-cache',
@@ -109,11 +110,11 @@ const server = Bun.serve<WebSocketData>({
         }
       });
     }
-    
+
     // API: Create Room
     if (path === '/api/create-room' && req.method === 'POST') {
       const code = generateRoomCode();
-      
+
       const room = new BingoRoom(
         code,
         // onDestroy
@@ -156,39 +157,39 @@ const server = Bun.serve<WebSocketData>({
           }
         }
       );
-      
+
       rooms.set(code, room);
       console.log(`Room ${code} created.`);
       return Response.json({ success: true, roomCode: code });
     }
-    
+
     // WebSocket Upgrade route
     if (path === '/ws') {
       const playerId = url.searchParams.get('playerId');
       const username = url.searchParams.get('username');
       const code = url.searchParams.get('roomCode');
-      
+
       if (!playerId || !username || !code) {
         return new Response('Missing parameters', { status: 400 });
       }
-      
+
       const upgraded = server.upgrade(req, {
         data: { playerId, username, roomCode: code.toUpperCase() }
       });
-      
+
       if (upgraded) return undefined;
       return new Response('Upgrade failed', { status: 400 });
     }
-    
+
     return new Response('Not Found', { status: 404 });
   },
-  
+
   websocket: {
     open(ws) {
       const { playerId, username, roomCode } = ws.data;
-      
+
       console.log(`Socket open: Player ${username} (${playerId}) connecting to Room ${roomCode}`);
-      
+
       const room = rooms.get(roomCode);
       if (!room) {
         ws.send(JSON.stringify({
@@ -198,9 +199,9 @@ const server = Bun.serve<WebSocketData>({
         ws.close();
         return;
       }
-      
+
       playerSockets.set(playerId, ws);
-      
+
       const joined = room.addPlayer(playerId, username);
       if (!joined) {
         ws.send(JSON.stringify({
@@ -211,15 +212,15 @@ const server = Bun.serve<WebSocketData>({
         ws.close();
       }
     },
-    
+
     message(ws, message) {
       const { playerId, roomCode } = ws.data;
       const room = rooms.get(roomCode);
       if (!room) return;
-      
+
       try {
         const parsed = JSON.parse(message as string);
-        
+
         switch (parsed.type) {
           case 'SET_GRID':
             room.setGrid(playerId, parsed.payload.grid);
@@ -250,13 +251,13 @@ const server = Bun.serve<WebSocketData>({
         console.error('Error handling WebSocket message:', err);
       }
     },
-    
+
     close(ws) {
       const { playerId, username, roomCode } = ws.data;
       console.log(`Socket close: Player ${username} (${playerId}) disconnected from Room ${roomCode}`);
-      
+
       playerSockets.delete(playerId);
-      
+
       const room = rooms.get(roomCode);
       if (room) {
         room.handleDisconnect(playerId);
@@ -265,4 +266,4 @@ const server = Bun.serve<WebSocketData>({
   }
 });
 
-console.log(`Bingo server is running on http://localhost:${server.port}`);
+console.log(`Bingo server is running on http://${server.hostname}:${server.port}`);
