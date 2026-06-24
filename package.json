@@ -1,0 +1,18 @@
+{
+  "name": "bingo",
+  "version": "1.0.0",
+  "description": "A real-time two-player web-based Bingo game built with Bun and TypeScript.",
+  "main": "src/server.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/server.ts",
+    "dev": "bun --watch run src/server.ts",
+    "build:frontend": "bun build src/client.ts --outdir public",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "typescript": "^5.4.5"
+  }
+}
