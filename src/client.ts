@@ -51,11 +51,13 @@ const matchupText = document.getElementById('matchupText') as HTMLElement;
 
 // Grids
 const myUsername = document.getElementById('myUsername') as HTMLElement;
+const myBingoLetters = document.getElementById('myBingoLetters') as HTMLElement;
 const myInstruction = document.getElementById('myInstruction') as HTMLElement;
 const myStatusBadge = document.getElementById('myStatusBadge') as HTMLElement;
 const myGrid = document.getElementById('myGrid') as HTMLElement;
 
 const opponentUsername = document.getElementById('opponentUsername') as HTMLElement;
+const opponentBingoLetters = document.getElementById('opponentBingoLetters') as HTMLElement;
 const opponentInstruction = document.getElementById('opponentInstruction') as HTMLElement;
 const opponentStatusBadge = document.getElementById('opponentStatusBadge') as HTMLElement;
 const opponentGrid = document.getElementById('opponentGrid') as HTMLElement;
@@ -417,11 +419,6 @@ function countCompletedLines(marked: boolean[]): number {
   return count;
 }
 
-function getBingoString(lines: number): string {
-  if (lines <= 0) return '';
-  const letters = 'BINGO'.substring(0, Math.min(5, lines)).split('').join('-');
-  return ` [${letters}]`;
-}
 
 function updateRoomUI(state: RoomStatePayload) {
   currentRoomState = state;
@@ -438,8 +435,7 @@ function updateRoomUI(state: RoomStatePayload) {
 
   // Render "Me" section
   if (me) {
-    const myLines = me.marked ? countCompletedLines(me.marked) : 0;
-    myUsername.textContent = `${me.username} (You)${getBingoString(myLines)}`;
+    myUsername.textContent = `${me.username} (You)`;
     myStatusBadge.textContent = me.ready ? 'READY' : 'SETUP';
     if (me.ready) {
       myStatusBadge.classList.add('ready');
@@ -464,8 +460,7 @@ function updateRoomUI(state: RoomStatePayload) {
 
   // Render "Opponent" section
   if (opponent) {
-    const oppLines = opponent.marked ? countCompletedLines(opponent.marked) : 0;
-    opponentUsername.textContent = `${opponent.username}${getBingoString(oppLines)}`;
+    opponentUsername.textContent = opponent.username;
     opponentStatusBadge.textContent = opponent.ready ? 'READY' : 'SETUP';
     if (opponent.ready) {
       opponentStatusBadge.classList.add('ready');
@@ -487,6 +482,17 @@ function updateRoomUI(state: RoomStatePayload) {
   renderPhaseView(state, me, opponent);
 }
 
+function updateBingoLetters(container: HTMLElement, lines: number) {
+  const letters = container.querySelectorAll('.bingo-letter');
+  letters.forEach((letterEl, index) => {
+    if (index < lines) {
+      letterEl.classList.add('active');
+    } else {
+      letterEl.classList.remove('active');
+    }
+  });
+}
+
 function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   // Hide all dynamic elements by default
   opponentGridOverlay.classList.add('hidden');
@@ -494,6 +500,8 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   turnBanner.classList.add('hidden');
   rematchControls.classList.add('hidden');
   matchupDisplay.classList.add('hidden');
+  myBingoLetters.classList.add('hidden');
+  opponentBingoLetters.classList.add('hidden');
 
   myGrid.classList.remove('editing', 'match-active');
   opponentGrid.classList.remove('match-active');
@@ -520,6 +528,30 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   // Render My Grid
   renderMyGrid(state, me);
 
+  // Update bingo letters if in match or match_end phase
+  if (state.phase === 'match' || state.phase === 'match_end') {
+    myBingoLetters.classList.remove('hidden');
+    if (opponent) {
+      opponentBingoLetters.classList.remove('hidden');
+    }
+    const myLines = me && me.marked ? countCompletedLines(me.marked) : 0;
+    const oppLines = opponent && opponent.marked ? countCompletedLines(opponent.marked) : 0;
+    updateBingoLetters(myBingoLetters, myLines);
+    updateBingoLetters(opponentBingoLetters, oppLines);
+  }
+
+  // Show matchup VS in room-stats-bar and hide individual headers if opponent is present
+  if (me && opponent) {
+    matchupText.textContent = `${me.username} VS ${opponent.username}`;
+    matchupDisplay.classList.remove('hidden');
+    myUsername.classList.add('hidden');
+    opponentUsername.classList.add('hidden');
+  } else {
+    matchupDisplay.classList.add('hidden');
+    myUsername.classList.remove('hidden');
+    opponentUsername.classList.remove('hidden');
+  }
+
   if (state.phase === 'waiting') {
     // Waiting for opponent to join
     opponentGridOverlay.classList.remove('hidden');
@@ -529,12 +561,6 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   else if (state.phase === 'setup') {
     // Both players present, setting up boards
     renderOpponentEmptyGrid();
-    
-    // Display Shelly VS Bull in room-stats-bar
-    if (me && opponent) {
-      matchupText.textContent = `${me.username} VS ${opponent.username}`;
-      matchupDisplay.classList.remove('hidden');
-    }
     
     myInstruction.classList.remove('hidden');
     if (me && me.ready) {

@@ -1075,6 +1075,49 @@ input[type="text"]:focus {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Bingo Letter Badges under Usernames */
+.bingo-letters-container {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  align-items: center;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.bingo-letter {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--surface0);
+  color: var(--overlay0);
+  border: 1px solid var(--surface1);
+  transition: background-color var(--transition-speed) ease,
+              color var(--transition-speed) ease,
+              border-color var(--transition-speed) ease,
+              box-shadow var(--transition-speed) ease,
+              transform var(--transition-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.bingo-letter.active {
+  background-color: var(--accent);
+  color: var(--base);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(1.1);
+  animation: letter-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes letter-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1.1); }
+}
+
 /* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
   main {

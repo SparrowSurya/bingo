@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bingo | Real-time Multi-player</title>
-  
+
   <!-- Modern Google Font: Space Grotesk -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
+
   <!-- CSS Styling -->
   <link rel="stylesheet" href="/style.css">
-  
+
   <!-- Favicon placeholder (inline svg to avoid 404s) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
 </head>
@@ -28,7 +28,7 @@
       <span>BINGO</span>
       <span class="logo-dot"></span>
     </div>
-    
+
     <!-- Accent Color Selector -->
     <div class="accent-selector" id="accentSelector">
       <span class="accent-label">Accent:</span>
@@ -50,13 +50,13 @@
 
   <!-- Main App Container -->
   <main id="app">
-    
+
     <!-- VIEW: LANDING -->
     <section id="viewLanding" class="view active">
       <div class="landing-card card">
         <h1 class="landing-title">Play Bingo with a Friend</h1>
         <p class="landing-subtitle">Create a room, share the code, and start playing in real-time.</p>
-        
+
         <!-- User Settings -->
         <div class="input-group">
           <label for="usernameInput">Username</label>
@@ -64,13 +64,13 @@
         </div>
 
         <div class="action-divider"><span>OR</span></div>
-        
+
         <!-- Room Controls -->
         <div class="landing-actions">
           <div class="create-section">
             <button id="btnCreateRoom" class="btn primary btn-glow">Create New Room</button>
           </div>
-          
+
           <div class="join-section">
             <div class="join-input-wrapper">
               <input type="text" id="joinCodeInput" placeholder="Enter 4-digit code" autocomplete="off" maxlength="6" style="text-transform: uppercase;">
@@ -83,7 +83,7 @@
 
     <!-- VIEW: GAME ROOM -->
     <section id="viewRoom" class="view">
-      
+
       <!-- Top Stats Bar -->
       <div class="room-stats-bar card">
         <div class="stat-item">
@@ -116,29 +116,36 @@
 
       <!-- Main Game Grid Area -->
       <div class="game-area">
-        
+
         <!-- Player Info Panel & Grid -->
         <div class="board-container my-board">
           <div class="board-header">
             <div class="player-header-info">
               <h2 id="myUsername" class="player-name">Player 1 (You)</h2>
+              <div id="myBingoLetters" class="bingo-letters-container hidden">
+                <span class="bingo-letter">B</span>
+                <span class="bingo-letter">I</span>
+                <span class="bingo-letter">N</span>
+                <span class="bingo-letter">G</span>
+                <span class="bingo-letter">O</span>
+              </div>
               <span id="myInstruction" class="board-instruction hidden">Double-click a tile to call it</span>
             </div>
             <div id="myStatusBadge" class="status-badge">NOT READY</div>
           </div>
-          
+
           <div class="board-content-wrapper">
             <div class="grid-wrapper">
               <div id="myGrid" class="bingo-grid editing">
                 <!-- JS-populated 5x5 cells -->
               </div>
             </div>
-            
+
             <!-- Setup Controls (Positioned side-by-side with grid) -->
             <div id="setupControls" class="setup-controls-panel hidden">
               <button id="btnRandomizeGrid" class="btn secondary sm">Shuffle Grid</button>
               <button id="btnReadyGrid" class="btn primary sm">Mark Ready</button>
-              
+
               <!-- Creator Options (Let Opponent Start) -->
               <div id="creatorControls" class="creator-setup-toggle hidden">
                 <label class="switch-container">
@@ -163,11 +170,18 @@
           <div class="board-header">
             <div class="player-header-info">
               <h2 id="opponentUsername" class="player-name">Waiting for Player...</h2>
+              <div id="opponentBingoLetters" class="bingo-letters-container hidden">
+                <span class="bingo-letter">B</span>
+                <span class="bingo-letter">I</span>
+                <span class="bingo-letter">N</span>
+                <span class="bingo-letter">G</span>
+                <span class="bingo-letter">O</span>
+              </div>
               <span id="opponentInstruction" class="board-instruction hidden">Opponent board</span>
             </div>
             <div id="opponentStatusBadge" class="status-badge">NOT READY</div>
           </div>
-          
+
           <div class="board-content-wrapper">
             <div class="grid-wrapper">
               <!-- Overlay shown during waiting/setup phase -->
@@ -177,7 +191,7 @@
                   <p id="blockerMessage">Waiting for opponent to connect...</p>
                 </div>
               </div>
-              
+
               <div id="opponentGrid" class="bingo-grid opponent-view">
                 <!-- JS-populated 5x5 cells -->
               </div>
