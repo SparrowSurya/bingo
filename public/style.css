@@ -397,6 +397,20 @@ input[type="text"]:focus {
   padding: 1rem 1.5rem;
   flex-wrap: wrap;
   gap: 1rem;
+  position: relative;
+}
+
+.matchup-display {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 700; /* BOLD */
+  font-size: 1.15rem;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 .stat-item {
@@ -1108,5 +1122,15 @@ input[type="text"]:focus {
   .unused-numbers-container {
     width: 100%;
     margin-top: 0.5rem;
+  }
+
+  .matchup-display {
+    position: static;
+    transform: none;
+    width: 100%;
+    text-align: center;
+    margin: 0.25rem 0;
+    font-size: 1rem;
+    pointer-events: auto;
   }
 }

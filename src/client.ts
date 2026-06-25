@@ -46,6 +46,8 @@ const btnCopyCode = document.getElementById('btnCopyCode') as HTMLButtonElement;
 const creatorControls = document.getElementById('creatorControls') as HTMLElement;
 const chkOpponentStart = document.getElementById('chkOpponentStart') as HTMLInputElement;
 const btnExitRoom = document.getElementById('btnExitRoom') as HTMLButtonElement;
+const matchupDisplay = document.getElementById('matchupDisplay') as HTMLElement;
+const matchupText = document.getElementById('matchupText') as HTMLElement;
 
 // Grids
 const myUsername = document.getElementById('myUsername') as HTMLElement;
@@ -491,6 +493,7 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   setupControls.classList.add('hidden');
   turnBanner.classList.add('hidden');
   rematchControls.classList.add('hidden');
+  matchupDisplay.classList.add('hidden');
 
   myGrid.classList.remove('editing', 'match-active');
   opponentGrid.classList.remove('match-active');
@@ -526,6 +529,12 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   else if (state.phase === 'setup') {
     // Both players present, setting up boards
     renderOpponentEmptyGrid();
+    
+    // Display Shelly VS Bull in room-stats-bar
+    if (me && opponent) {
+      matchupText.textContent = `${me.username} VS ${opponent.username}`;
+      matchupDisplay.classList.remove('hidden');
+    }
     
     myInstruction.classList.remove('hidden');
     if (me && me.ready) {
