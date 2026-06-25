@@ -1,5 +1,7 @@
 import type { GamePhase, Player, RoomStatePayload, ClientPlayerState } from './types';
 
+const ROOM_DISCONNECT_TIMEOUT = parseInt(process.env.ROOM_DISCONNECT_TIMEOUT || '10000', 10);
+
 /**
  * Validates that the grid is a 5x5 layout containing exactly the numbers 1 to 25.
  */
@@ -177,7 +179,7 @@ export class BingoRoom {
   }
 
   /**
-   * Handles player disconnection (starts the 10-second grace period).
+   * Handles player disconnection (starts the grace period).
    */
   public handleDisconnect(playerId: string) {
     const player = this.players.get(playerId);
@@ -192,14 +194,15 @@ export class BingoRoom {
     // Alert the other player about disconnection
     const otherId = this.playerOrder.find(pid => pid !== playerId);
     if (otherId) {
-      this.onToastCallback(otherId, `${player.username} disconnected. Waiting 10s to reconnect...`, 'info');
+      const timeoutSecs = Math.ceil(ROOM_DISCONNECT_TIMEOUT / 1000);
+      this.onToastCallback(otherId, `${player.username} disconnected. Waiting ${timeoutSecs}s to reconnect...`, 'info');
     }
 
-    // Start 10-second grace period timeout
+    // Start grace period timeout
     const timeout = setTimeout(() => {
       this.reconnectTimeouts.delete(playerId);
       this.finalizePlayerExit(playerId);
-    }, 10000); // 10 seconds grace period
+    }, ROOM_DISCONNECT_TIMEOUT);
 
     this.reconnectTimeouts.set(playerId, timeout);
   }

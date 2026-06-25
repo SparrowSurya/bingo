@@ -89,12 +89,13 @@ Navigate to [http://localhost:3000](http://localhost:3000) in your web browsers.
 The server and client configurations can be customized using the following environment variables:
 
 | Variable | Description |
-| :--- | :--- | :--- |
+| :--- | :--- |
 | `HOSTNAME` | Server binding address |
 | `PORT` | Network port for web server & WebSockets |
 | `CHAT_MAX_LENGTH` | Maximum allowed character length per message |
 | `CHAT_LIMIT` | Token bucket capacity for rate-limiting chat |
 | `CHAT_REFILL_RATE` | Delay in milliseconds to refill 1 message token |
+| `ROOM_DISCONNECT_TIMEOUT` | Grace period in milliseconds before room is cleaned up after a player disconnects |
 
 ---
 
