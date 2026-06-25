@@ -92,17 +92,21 @@ export class BingoRoom {
   private onBroadcastCallback: () => void;
   // Callback to send toast to specific player
   private onToastCallback: (playerId: string, message: string, type: 'success' | 'error' | 'info') => void;
+  // Callback to kick a specific player from the room
+  private onKickCallback: (playerId: string, message: string) => void;
 
   constructor(
     code: string,
     onDestroy: () => void,
     onBroadcast: () => void,
-    onToast: (playerId: string, message: string, type: 'success' | 'error' | 'info') => void
+    onToast: (playerId: string, message: string, type: 'success' | 'error' | 'info') => void,
+    onKick: (playerId: string, message: string) => void
   ) {
     this.code = code;
     this.onDestroyCallback = onDestroy;
     this.onBroadcastCallback = onBroadcast;
     this.onToastCallback = onToast;
+    this.onKickCallback = onKick;
   }
 
   /**
@@ -210,7 +214,7 @@ export class BingoRoom {
   /**
    * Explicitly exit or kick players if the reconnect grace period expires.
    */
-  public finalizePlayerExit(playerId: string) {
+  public finalizePlayerExit(playerId: string, reason?: string) {
     const player = this.players.get(playerId);
     if (!player) return;
 
@@ -221,13 +225,45 @@ export class BingoRoom {
       this.reconnectTimeouts.delete(playerId);
     }
 
-    // Notify other player and destroy room
-    const otherId = this.playerOrder.find(pid => pid !== playerId);
-    if (otherId) {
-      this.onToastCallback(otherId, `${player.username} left the match. Game ended.`, 'error');
+    const wasCreator = playerId === this.creatorId;
+
+    // Remove leaving player
+    this.players.delete(playerId);
+    this.playerOrder = this.playerOrder.filter(pid => pid !== playerId);
+    delete this.rematchStates[playerId];
+
+    if (this.players.size === 0) {
+      this.destroy();
+      return;
     }
 
-    this.destroy();
+    // Reset room state to waiting for player
+    this.phase = 'waiting';
+    this.winnerPlayerId = null;
+    this.lastCalledNumber = null;
+    this.turnIndex = 0;
+    this.letOpponentStart = false;
+
+    // Reset remaining player's board/ready status
+    for (const p of this.players.values()) {
+      p.grid = null;
+      p.marked = Array(25).fill(false);
+      p.ready = false;
+      this.rematchStates[p.id] = null;
+    }
+
+    // Notify the remaining player that the opponent left
+    const remainingId = this.playerOrder[0];
+    if (remainingId) {
+      let msg = reason;
+      if (!msg) {
+        const hostSuffix = wasCreator ? " You are now the host." : "";
+        msg = `${player.username} left the match. Room is open for a new player.${hostSuffix}`;
+      }
+      this.onToastCallback(remainingId, msg, 'info');
+    }
+
+    this.onBroadcastCallback();
   }
 
   /**
@@ -418,22 +454,28 @@ export class BingoRoom {
   }
 
   /**
-   * Reject rematch. Kicks both players and destroys the room.
+   * Reject rematch. Removes the rejecting player and resets the room back to waiting phase.
    */
   public rejectRematch(playerId: string) {
     if (this.phase !== 'match_end') return;
 
+    const player = this.players.get(playerId);
+    if (!player) return;
+
     this.rematchStates[playerId] = 'rejected';
     this.onBroadcastCallback();
 
-    // Inform both and destroy room
-    for (const pid of this.playerOrder) {
-      this.onToastCallback(pid, 'Rematch declined. Returning to landing page.', 'info');
-    }
+    const wasCreator = playerId === this.creatorId;
 
-    setTimeout(() => {
-      this.destroy();
-    }, 1000);
+    // Inform the rejecting player and kick them back to landing page
+    this.onKickCallback(playerId, 'Rematch declined.');
+
+    // Finalize player exit, notifying remaining player of rematch decline
+    const hostSuffix = wasCreator ? ' You are now the host.' : '';
+    this.finalizePlayerExit(
+      playerId,
+      `${player.username} declined the rematch. Room is open for a new player.${hostSuffix}`
+    );
   }
 
   /**

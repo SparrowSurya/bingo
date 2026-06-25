@@ -804,6 +804,12 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
   }
 
   if (state.phase === 'waiting') {
+    // Reset local grid and active inputs in case we transition back from an active game/setup
+    localGrid = Array(25).fill(null);
+    activeInputCellIndex = null;
+    btnRequestRematch.disabled = false;
+    rematchStatusText.textContent = '';
+
     // Waiting for opponent to join
     opponentGridOverlay.classList.remove('hidden');
     blockerMessage.textContent = 'Share the Room Code to invite a friend...';

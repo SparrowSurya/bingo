@@ -207,6 +207,16 @@ const server = Bun.serve<WebSocketData>({
               payload: { message, type }
             }));
           }
+        },
+        // onKick
+        (pid, message) => {
+          const ws = playerSockets.get(pid);
+          if (ws) {
+            ws.send(JSON.stringify({
+              type: 'KICK',
+              payload: { message }
+            }));
+          }
         }
       );
 
