@@ -594,7 +594,13 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
 
   // Show matchup VS in room-stats-bar and hide individual headers if opponent is present
   if (me && opponent) {
-    matchupText.textContent = `${me.username} VS ${opponent.username}`;
+    if (state.phase === 'setup') {
+      const meDot = me.ready ? '<span class="status-dot ready" title="Ready"></span>' : '<span class="status-dot" title="Setting up"></span>';
+      const oppDot = opponent.ready ? '<span class="status-dot ready" title="Ready"></span>' : '<span class="status-dot" title="Setting up"></span>';
+      matchupText.innerHTML = `${me.username}${meDot} <span class="vs-text">VS</span> ${oppDot}${opponent.username}`;
+    } else {
+      matchupText.innerHTML = `${me.username} <span class="vs-text">VS</span> ${opponent.username}`;
+    }
     matchupDisplay.classList.remove('hidden');
     myUsername.classList.add('hidden');
     opponentUsername.classList.add('hidden');

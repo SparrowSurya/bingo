@@ -1267,6 +1267,29 @@ input[type="text"]:focus {
   to { transform: translate(-50%, -50%) rotate(-45deg) scaleX(1); }
 }
 
+/* Status Dot Indicator for matchup VS bar */
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--surface2);
+  margin: 0 8px;
+  vertical-align: middle;
+  transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.status-dot.ready {
+  background-color: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: dotPulse 1.5s infinite alternate;
+}
+
+@keyframes dotPulse {
+  from { opacity: 0.6; box-shadow: 0 0 4px var(--green); }
+  to { opacity: 1; box-shadow: 0 0 10px var(--green); }
+}
+
 /* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
   main {
