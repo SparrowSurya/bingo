@@ -722,7 +722,7 @@ input[type="text"]:focus {
   color: var(--accent);
   text-align: center;
   font-family: var(--font-family);
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 700;
 }
 
@@ -1200,7 +1200,7 @@ input[type="text"]:focus {
 
 /* Rows: Horizontal lines */
 .grid-strike-line.strike-row {
-  height: 6px;
+  height: 2px;
   left: 3%;
   width: 94%;
   transform: translateY(-50%) scaleX(0);
@@ -1215,7 +1215,7 @@ input[type="text"]:focus {
 
 /* Cols: Vertical lines */
 .grid-strike-line.strike-col {
-  width: 6px;
+  width: 2px;
   top: 3%;
   height: 94%;
   transform: translateX(-50%) scaleY(0);
@@ -1230,7 +1230,7 @@ input[type="text"]:focus {
 
 /* Diagonals */
 .grid-strike-line.strike-diag {
-  height: 6px;
+  height: 2px;
   top: 50%;
   left: 50%;
   width: 128%; /* diagonal length of a square */

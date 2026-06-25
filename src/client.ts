@@ -648,17 +648,34 @@ function countCompletedLines(marked: boolean[]): number {
 }
 
 function renderStrikeLines(wrapper: HTMLElement, marked: boolean[]) {
-  // Remove any existing strike lines
-  wrapper.querySelectorAll('.grid-strike-line').forEach(line => line.remove());
-
-  if (!marked) return;
-
-  const completed = getCompletedLines(marked);
-  completed.forEach(line => {
-    const strikeEl = document.createElement('div');
-    strikeEl.className = `grid-strike-line strike-${line.type} strike-${line.type}-${line.index}`;
-    wrapper.appendChild(strikeEl);
-  });
+  const completed = marked ? getCompletedLines(marked) : [];
+  
+  // Get all existing strike line elements
+  const existingStrikeEls = wrapper.querySelectorAll('.grid-strike-line');
+  
+  // Build a set of new strike classes for comparison
+  const newStrikes = completed.map(line => `grid-strike-line strike-${line.type} strike-${line.type}-${line.index}`);
+  
+  // Check if anything actually changed before rebuilding DOM
+  let needsUpdate = existingStrikeEls.length !== newStrikes.length;
+  if (!needsUpdate) {
+    for (let i = 0; i < existingStrikeEls.length; i++) {
+      const cls = existingStrikeEls[i].className;
+      if (!newStrikes.includes(cls)) {
+        needsUpdate = true;
+        break;
+      }
+    }
+  }
+  
+  if (needsUpdate) {
+    existingStrikeEls.forEach(line => line.remove());
+    completed.forEach(line => {
+      const strikeEl = document.createElement('div');
+      strikeEl.className = `grid-strike-line strike-${line.type} strike-${line.type}-${line.index}`;
+      wrapper.appendChild(strikeEl);
+    });
+  }
 }
 
 
@@ -787,12 +804,16 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
 
   // Show matchup VS in room-stats-bar and hide individual headers if opponent is present
   if (me && opponent) {
+    let newHTML = '';
     if (state.phase === 'setup') {
       const meDot = me.ready ? '<span class="status-dot ready" title="Ready"></span>' : '<span class="status-dot" title="Setting up"></span>';
       const oppDot = opponent.ready ? '<span class="status-dot ready" title="Ready"></span>' : '<span class="status-dot" title="Setting up"></span>';
-      matchupText.innerHTML = `${me.username}${meDot} <span class="vs-text">VS</span> ${oppDot}${opponent.username}`;
+      newHTML = `${me.username}${meDot} <span class="vs-text">VS</span> ${oppDot}${opponent.username}`;
     } else {
-      matchupText.innerHTML = `${me.username} <span class="vs-text">VS</span> ${opponent.username}`;
+      newHTML = `${me.username} <span class="vs-text">VS</span> ${opponent.username}`;
+    }
+    if (matchupText.innerHTML !== newHTML) {
+      matchupText.innerHTML = newHTML;
     }
     matchupDisplay.classList.remove('hidden');
     myUsername.classList.add('hidden');
@@ -847,7 +868,7 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
     // Removed 3rd set of header (turnBanner) in active match
 
     if (state.turnPlayerId === playerId) {
-      myInstruction.innerHTML = `<span style="color: var(--accent); font-weight: 700;">YOUR TURN</span> — Double-click a tile to call!`;
+      myInstruction.textContent = 'Double-click a tile to call!';
       myStatusBadge.textContent = 'YOUR TURN';
       myStatusBadge.className = 'status-badge ready';
 
@@ -861,7 +882,7 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
       myStatusBadge.textContent = 'WAITING';
       myStatusBadge.className = 'status-badge';
 
-      opponentInstruction.innerHTML = `<span style="color: var(--accent); font-weight: 700;">THEIR TURN</span>`;
+      opponentInstruction.textContent = 'Calling a number...';
       opponentStatusBadge.textContent = 'THEIR TURN';
       opponentStatusBadge.className = 'status-badge ready';
     }
@@ -947,7 +968,13 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
 // -------------------------------------------------------------
 
 function renderMyGrid(state: RoomStatePayload, me: any) {
-  myGrid.innerHTML = '';
+  // Ensure we have exactly 25 placeholder cells first (flicker-free container skeleton)
+  if (myGrid.children.length !== 25) {
+    myGrid.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+      myGrid.appendChild(document.createElement('div'));
+    }
+  }
 
   // Helper to save the value currently in the input box to the active cell
   const saveActiveInput = (index: number) => {
@@ -1067,7 +1094,7 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
       }
     }
 
-    myGrid.appendChild(cell);
+    myGrid.replaceChild(cell, myGrid.children[i]);
   }
 
   // Render completed lines strike overlays
@@ -1078,7 +1105,13 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
 }
 
 function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
-  opponentGrid.innerHTML = '';
+  // Ensure we have exactly 25 placeholder cells first (flicker-free container skeleton)
+  if (opponentGrid.children.length !== 25) {
+    opponentGrid.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+      opponentGrid.appendChild(document.createElement('div'));
+    }
+  }
 
   if (!opponent || !opponent.grid) {
     renderOpponentEmptyGrid();
@@ -1097,7 +1130,7 @@ function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
       cell.classList.add('last-called');
     }
 
-    opponentGrid.appendChild(cell);
+    opponentGrid.replaceChild(cell, opponentGrid.children[i]);
   }
 
   // Render completed lines strike overlays
@@ -1108,11 +1141,17 @@ function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
 }
 
 function renderOpponentEmptyGrid() {
-  opponentGrid.innerHTML = '';
+  // Ensure we have exactly 25 placeholder cells first (flicker-free container skeleton)
+  if (opponentGrid.children.length !== 25) {
+    opponentGrid.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+      opponentGrid.appendChild(document.createElement('div'));
+    }
+  }
   for (let i = 0; i < 25; i++) {
     const cell = document.createElement('div');
     cell.className = 'bingo-cell';
-    opponentGrid.appendChild(cell);
+    opponentGrid.replaceChild(cell, opponentGrid.children[i]);
   }
 
   // Clear strike lines
@@ -1123,16 +1162,19 @@ function renderOpponentEmptyGrid() {
 }
 
 function renderUnusedNumbers() {
-  unusedNumbers.innerHTML = '';
+  // Ensure we have exactly 25 placeholder badges first (flicker-free container skeleton)
+  if (unusedNumbers.children.length !== 25) {
+    unusedNumbers.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+      unusedNumbers.appendChild(document.createElement('div'));
+    }
+  }
   for (let i = 1; i <= 25; i++) {
     const isUsed = localGrid.includes(i);
     const badge = document.createElement('div');
-    badge.className = 'unused-badge';
+    badge.className = isUsed ? 'unused-badge used' : 'unused-badge';
     badge.textContent = i.toString();
-    if (isUsed) {
-      badge.classList.add('used');
-    }
-    unusedNumbers.appendChild(badge);
+    unusedNumbers.replaceChild(badge, unusedNumbers.children[i - 1]);
   }
 }
 
