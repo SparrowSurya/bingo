@@ -43,10 +43,14 @@ export type ClientMessage =
   | { type: 'EXIT_ROOM' }
   | { type: 'REQUEST_REMATCH' }
   | { type: 'ACCEPT_REMATCH' }
-  | { type: 'REJECT_REMATCH' };
+  | { type: 'REJECT_REMATCH' }
+  | { type: 'SEND_CHAT'; payload: { text: string } }
+  | { type: 'SET_TYPING'; payload: { typing: boolean } };
 
 // Server -> Client messages
 export type ServerMessage =
   | { type: 'ROOM_STATE'; payload: RoomStatePayload }
   | { type: 'TOAST'; payload: { message: string; type: 'success' | 'error' | 'info' } }
-  | { type: 'KICK'; payload: { message: string } };
+  | { type: 'KICK'; payload: { message: string } }
+  | { type: 'CHAT_MSG'; payload: { senderId: string; senderName: string; text: string; timestamp: number } }
+  | { type: 'OPPONENT_TYPING'; payload: { typing: boolean } };

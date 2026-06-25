@@ -3,6 +3,50 @@ import { BingoRoom } from './game';
 const rooms = new Map<string, BingoRoom>();
 const playerSockets = new Map<string, any>(); // maps playerId -> ServerWebSocket
 
+interface RateLimiter {
+  tokens: number;
+  lastRefill: number;
+}
+
+const rateLimiters = new Map<string, RateLimiter>();
+
+function checkRateLimit(playerId: string): boolean {
+  const LIMIT = 5; // max tokens
+  const REFILL_RATE = 1000; // 1 token per 1000ms
+  
+  let limiter = rateLimiters.get(playerId);
+  const now = Date.now();
+  
+  if (!limiter) {
+    limiter = { tokens: LIMIT, lastRefill: now };
+    rateLimiters.set(playerId, limiter);
+    return true;
+  }
+  
+  const elapsed = now - limiter.lastRefill;
+  const refill = Math.floor(elapsed / REFILL_RATE);
+  if (refill > 0) {
+    limiter.tokens = Math.min(LIMIT, limiter.tokens + refill);
+    limiter.lastRefill = now;
+  }
+  
+  if (limiter.tokens > 0) {
+    limiter.tokens--;
+    return true;
+  }
+  
+  return false;
+}
+
+function escapeHTML(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // In-memory bundled client js
 let clientJsText = '';
 
@@ -210,6 +254,20 @@ const server = Bun.serve<WebSocketData>({
         }));
         playerSockets.delete(playerId);
         ws.close();
+      } else {
+        // Broadcast JOIN system chat message
+        const joinMsg = {
+          type: 'CHAT_MSG',
+          payload: {
+            senderId: 'server',
+            senderName: 'Server',
+            text: `${username} joined the room.`,
+            timestamp: Date.now()
+          }
+        };
+        for (const pid of room.playerOrder) {
+          playerSockets.get(pid)?.send(JSON.stringify(joinMsg));
+        }
       }
     },
 
@@ -246,6 +304,47 @@ const server = Bun.serve<WebSocketData>({
           case 'REJECT_REMATCH':
             room.rejectRematch(playerId);
             break;
+          case 'SEND_CHAT': {
+            const text = parsed.payload.text?.trim();
+            if (!text || text.length === 0 || text.length > 200) {
+              break;
+            }
+            if (!checkRateLimit(playerId)) {
+              ws.send(JSON.stringify({
+                type: 'TOAST',
+                payload: {
+                  message: 'You are sending messages too fast. Please wait a moment.',
+                  type: 'error'
+                }
+              }));
+              break;
+            }
+            const sanitizedText = escapeHTML(text);
+            const chatMsg = {
+              type: 'CHAT_MSG',
+              payload: {
+                senderId: playerId,
+                senderName: ws.data.username,
+                text: sanitizedText,
+                timestamp: Date.now()
+              }
+            };
+            for (const pid of room.playerOrder) {
+              playerSockets.get(pid)?.send(JSON.stringify(chatMsg));
+            }
+            break;
+          }
+          case 'SET_TYPING': {
+            const typing = !!parsed.payload.typing;
+            const opponentId = room.playerOrder.find(id => id !== playerId);
+            if (opponentId) {
+              playerSockets.get(opponentId)?.send(JSON.stringify({
+                type: 'OPPONENT_TYPING',
+                payload: { typing }
+              }));
+            }
+            break;
+          }
         }
       } catch (err) {
         console.error('Error handling WebSocket message:', err);
@@ -261,6 +360,20 @@ const server = Bun.serve<WebSocketData>({
       const room = rooms.get(roomCode);
       if (room) {
         room.handleDisconnect(playerId);
+        
+        // Broadcast LEAVE system chat message
+        const leaveMsg = {
+          type: 'CHAT_MSG',
+          payload: {
+            senderId: 'server',
+            senderName: 'Server',
+            text: `${username} disconnected.`,
+            timestamp: Date.now()
+          }
+        };
+        for (const pid of room.playerOrder) {
+          playerSockets.get(pid)?.send(JSON.stringify(leaveMsg));
+        }
       }
     }
   }

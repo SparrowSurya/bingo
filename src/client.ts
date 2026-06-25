@@ -82,6 +82,20 @@ const btnAcceptRematch = document.getElementById('btnAcceptRematch') as HTMLButt
 const btnRejectRematch = document.getElementById('btnRejectRematch') as HTMLButtonElement;
 const rematchStatusText = document.getElementById('rematchStatusText') as HTMLElement;
 
+// Chat Elements
+const chatFab = document.getElementById('chatFab') as HTMLButtonElement;
+const chatUnreadBadge = document.getElementById('chatUnreadBadge') as HTMLElement;
+const chatDrawer = document.getElementById('chatDrawer') as HTMLElement;
+const btnCloseChat = document.getElementById('btnCloseChat') as HTMLButtonElement;
+const chatMessages = document.getElementById('chatMessages') as HTMLElement;
+const chatTypingIndicator = document.getElementById('chatTypingIndicator') as HTMLElement;
+const chatForm = document.getElementById('chatForm') as HTMLFormElement;
+const chatInput = document.getElementById('chatInput') as HTMLInputElement;
+
+let unreadMessagesCount = 0;
+let isChatOpen = false;
+let typingTimeout: any = null;
+
 // Dialogs
 const exitConfirmDialog = document.getElementById('exitConfirmDialog') as HTMLDialogElement;
 const btnExitConfirmYes = document.getElementById('btnExitConfirmYes') as HTMLButtonElement;
@@ -176,6 +190,68 @@ btnExitConfirmYes.addEventListener('click', () => {
   navigateTo('/');
 });
 
+// Chat Event Listeners
+chatFab.addEventListener('click', () => {
+  isChatOpen = true;
+  chatDrawer.classList.add('open');
+  
+  // Reset unread count
+  unreadMessagesCount = 0;
+  chatUnreadBadge.textContent = '0';
+  chatUnreadBadge.classList.add('hidden');
+  chatUnreadBadge.classList.remove('shake');
+  
+  // Focus input
+  setTimeout(() => chatInput.focus(), 150);
+});
+
+btnCloseChat.addEventListener('click', () => {
+  isChatOpen = false;
+  chatDrawer.classList.remove('open');
+});
+
+// Typing indicator emitter
+chatInput.addEventListener('input', () => {
+  // Send typing signal to opponent
+  sendWSMessage({
+    type: 'SET_TYPING',
+    payload: { typing: true }
+  });
+  
+  if (typingTimeout) clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    sendWSMessage({
+      type: 'SET_TYPING',
+      payload: { typing: false }
+    });
+  }, 2000);
+});
+
+// Chat submit handler
+chatForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = chatInput.value.trim();
+  if (text.length === 0) return;
+  if (text.length > 200) {
+    showToast('Message cannot exceed 200 characters.', 'error');
+    return;
+  }
+  
+  sendWSMessage({
+    type: 'SEND_CHAT',
+    payload: { text }
+  });
+  
+  chatInput.value = '';
+  
+  // Send typing finished signal
+  if (typingTimeout) clearTimeout(typingTimeout);
+  sendWSMessage({
+    type: 'SET_TYPING',
+    payload: { typing: false }
+  });
+});
+
 // Grid setup tools
 btnRandomizeGrid.addEventListener('click', randomizeLocalGrid);
 btnReadyGrid.addEventListener('click', submitReadyState);
@@ -238,6 +314,93 @@ function loadSavedUser() {
   }
 }
 
+function initChat() {
+  chatMessages.innerHTML = '';
+  
+  // Add initial guidelines message
+  const systemMsg = document.createElement('div');
+  systemMsg.className = 'chat-msg system';
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'chat-msg-body';
+  bodyDiv.textContent = '📢 Please be respectful with each other.';
+  systemMsg.appendChild(bodyDiv);
+  chatMessages.appendChild(systemMsg);
+  
+  unreadMessagesCount = 0;
+  chatUnreadBadge.textContent = '0';
+  chatUnreadBadge.classList.add('hidden');
+  chatUnreadBadge.classList.remove('shake');
+  
+  isChatOpen = false;
+  chatDrawer.classList.remove('open');
+  chatFab.classList.add('hidden');
+}
+
+function appendChatMessage(payload: { senderId: string; senderName: string; text: string; timestamp: number }) {
+  const msgEl = document.createElement('div');
+  msgEl.className = 'chat-msg';
+
+  const timeStr = new Date(payload.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (payload.senderId === 'server') {
+    msgEl.classList.add('system');
+    
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'chat-msg-body';
+    bodyEl.textContent = payload.text;
+    msgEl.appendChild(bodyEl);
+  } else {
+    const isMe = payload.senderId === playerId;
+    msgEl.classList.add(isMe ? 'me' : 'opponent');
+
+    const bubbleEl = document.createElement('div');
+    bubbleEl.className = 'chat-msg-bubble';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'chat-msg-name';
+    nameEl.textContent = isMe ? `${payload.senderName} (You)` : payload.senderName;
+    bubbleEl.appendChild(nameEl);
+
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'chat-msg-body';
+    bodyEl.textContent = payload.text; // Safe from XSS
+    bubbleEl.appendChild(bodyEl);
+
+    msgEl.appendChild(bubbleEl);
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'chat-msg-time';
+    timeEl.textContent = timeStr;
+    msgEl.appendChild(timeEl);
+  }
+
+  chatMessages.appendChild(msgEl);
+  
+  // Auto-scroll
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  // Unread badge handling
+  if (!isChatOpen) {
+    unreadMessagesCount++;
+    chatUnreadBadge.textContent = unreadMessagesCount.toString();
+    chatUnreadBadge.classList.remove('hidden');
+    
+    // Shake animation
+    chatUnreadBadge.classList.remove('shake');
+    void chatUnreadBadge.offsetWidth; // force reflow
+    chatUnreadBadge.classList.add('shake');
+  }
+}
+
+function toggleOpponentTyping(typing: boolean) {
+  if (typing) {
+    chatTypingIndicator.classList.remove('hidden');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  } else {
+    chatTypingIndicator.classList.add('hidden');
+  }
+}
+
 function cleanupRoomState() {
   roomCode = null;
   currentRoomState = null;
@@ -246,6 +409,9 @@ function cleanupRoomState() {
   btnRequestRematch.disabled = false;
   rematchStatusText.textContent = '';
   chkOpponentStart.checked = false;
+  
+  // Reset chat
+  initChat();
 }
 
 // -------------------------------------------------------------
@@ -325,6 +491,12 @@ function handleServerMessage(msg: ServerMessage) {
       cleanupRoomState();
       navigateTo('/');
       break;
+    case 'CHAT_MSG':
+      appendChatMessage(msg.payload);
+      break;
+    case 'OPPONENT_TYPING':
+      toggleOpponentTyping(msg.payload.typing);
+      break;
   }
 }
 
@@ -391,6 +563,8 @@ function joinGameRoom() {
     showToast('Please enter your username to join the room.', 'info');
     return;
   }
+  
+  initChat();
   
   switchView('room');
   roomCodeDisplay.textContent = roomCode;
@@ -532,6 +706,9 @@ function updateRoomUI(state: RoomStatePayload) {
 
   // Render state according to phases
   renderPhaseView(state, me, opponent);
+
+  // Show chat FAB since the player is inside the room
+  chatFab.classList.remove('hidden');
 }
 
 function updateBingoLetters(container: HTMLElement, lines: number) {
