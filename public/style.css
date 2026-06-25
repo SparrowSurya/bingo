@@ -21,7 +21,7 @@
   /* Accent Options (loaded via class or style attribute, default is mauve) */
   --accent: #cba6f7;
   --accent-glow: rgba(203, 166, 247, 0.15);
-  
+
   /* Semantic Colors */
   --red: #f38ba8;
   --red-glow: rgba(243, 139, 168, 0.2);
@@ -683,7 +683,7 @@ input[type="text"]:focus {
   border: 1px solid var(--surface1);
   border-radius: 8px;
   color: var(--text);
-  font-size: 1.35rem;
+  font-size: 1.75rem;
   font-weight: 700;
   display: flex;
   justify-content: center;
@@ -751,22 +751,40 @@ input[type="text"]:focus {
   cursor: not-allowed;
 }
 
-/* Beautiful Strike line */
+/* Beautiful Small Cross (X) State */
+.bingo-cell.marked::before,
 .bingo-cell.marked::after {
   content: '';
   position: absolute;
-  width: 80%;
+  top: 50%;
+  left: 50%;
+  width: 30%;
   height: 2px;
   background-color: var(--accent);
-  transform: rotate(-45deg);
-  border-radius: 1px;
-  box-shadow: 0 0 8px var(--accent);
-  animation: strikeIn 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  border-radius: 1.5px;
+  box-shadow: 0 0 6px var(--accent);
+  opacity: 0;
+  transform-origin: center;
 }
 
-@keyframes strikeIn {
-  from { width: 0; opacity: 0; }
-  to { width: 80%; opacity: 1; }
+.bingo-cell.marked::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+  animation: crossInBefore 0.25s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.bingo-cell.marked::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+  animation: crossInAfter 0.25s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes crossInBefore {
+  from { transform: translate(-50%, -50%) rotate(45deg) scale(0); opacity: 0; }
+  to { transform: translate(-50%, -50%) rotate(45deg) scale(1); opacity: 0.85; }
+}
+
+@keyframes crossInAfter {
+  from { transform: translate(-50%, -50%) rotate(-45deg) scale(0); opacity: 0; }
+  to { transform: translate(-50%, -50%) rotate(-45deg) scale(1); opacity: 0.85; }
 }
 
 /* Board Content Wrapper & Setup Side-by-Side Controls */
@@ -1175,7 +1193,7 @@ input[type="text"]:focus {
   main {
     padding: 1rem;
   }
-  
+
   header {
     padding: 1rem;
     flex-direction: column;
@@ -1183,7 +1201,7 @@ input[type="text"]:focus {
     align-items: stretch;
     text-align: center;
   }
-  
+
   .accent-selector {
     justify-content: center;
   }
@@ -1191,7 +1209,7 @@ input[type="text"]:focus {
   .game-area {
     gap: 1.5rem;
   }
-  
+
   .board-container {
     max-width: 100%;
     min-width: 100%;
