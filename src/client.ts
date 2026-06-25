@@ -106,12 +106,28 @@ window.addEventListener('popstate', () => {
   checkRoute();
 });
 
-// Accent color selector click
-document.getElementById('accentSelector')?.addEventListener('click', (e) => {
+// Accent color selector hover & click handling
+const accentSelector = document.getElementById('accentSelector');
+accentSelector?.addEventListener('mouseenter', () => {
+  if (!accentSelector.classList.contains('closed')) {
+    accentSelector.classList.add('expanded');
+  }
+});
+
+accentSelector?.addEventListener('mouseleave', () => {
+  accentSelector.classList.remove('expanded');
+  accentSelector.classList.remove('closed');
+});
+
+accentSelector?.addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
   if (target.classList.contains('color-btn')) {
     const colorName = target.getAttribute('data-color') || 'mauve';
     setAccentColor(colorName);
+    
+    // Collapse immediately
+    accentSelector.classList.remove('expanded');
+    accentSelector.classList.add('closed');
   }
 });
 
