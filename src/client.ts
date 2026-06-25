@@ -401,38 +401,74 @@ function joinGameRoom() {
 // RENDER & UI UPDATES
 // -------------------------------------------------------------
 
-function countCompletedLines(marked: boolean[]): number {
-  if (!marked) return 0;
-  let count = 0;
+interface CompletedLine {
+  type: 'row' | 'col' | 'diag';
+  index: number;
+}
+
+function getCompletedLines(marked: boolean[]): CompletedLine[] {
+  const completed: CompletedLine[] = [];
+  if (!marked) return completed;
+
   // rows
   for (let r = 0; r < 5; r++) {
-    let completed = true;
+    let isCompleted = true;
     for (let c = 0; c < 5; c++) {
-      if (!marked[r * 5 + c]) { completed = false; break; }
+      if (!marked[r * 5 + c]) { isCompleted = false; break; }
     }
-    if (completed) count++;
+    if (isCompleted) {
+      completed.push({ type: 'row', index: r });
+    }
   }
+
   // cols
   for (let c = 0; c < 5; c++) {
-    let completed = true;
+    let isCompleted = true;
     for (let r = 0; r < 5; r++) {
-      if (!marked[r * 5 + c]) { completed = false; break; }
+      if (!marked[r * 5 + c]) { isCompleted = false; break; }
     }
-    if (completed) count++;
+    if (isCompleted) {
+      completed.push({ type: 'col', index: c });
+    }
   }
-  // diag1
+
+  // diag1 (top-left to bottom-right)
   let diag1 = true;
   for (let i = 0; i < 5; i++) {
     if (!marked[i * 5 + i]) { diag1 = false; break; }
   }
-  if (diag1) count++;
-  // diag2
+  if (diag1) {
+    completed.push({ type: 'diag', index: 1 });
+  }
+
+  // diag2 (bottom-left to top-right)
   let diag2 = true;
   for (let i = 0; i < 5; i++) {
     if (!marked[i * 5 + (4 - i)]) { diag2 = false; break; }
   }
-  if (diag2) count++;
-  return count;
+  if (diag2) {
+    completed.push({ type: 'diag', index: 2 });
+  }
+
+  return completed;
+}
+
+function countCompletedLines(marked: boolean[]): number {
+  return getCompletedLines(marked).length;
+}
+
+function renderStrikeLines(wrapper: HTMLElement, marked: boolean[]) {
+  // Remove any existing strike lines
+  wrapper.querySelectorAll('.grid-strike-line').forEach(line => line.remove());
+
+  if (!marked) return;
+
+  const completed = getCompletedLines(marked);
+  completed.forEach(line => {
+    const strikeEl = document.createElement('div');
+    strikeEl.className = `grid-strike-line strike-${line.type} strike-${line.type}-${line.index}`;
+    wrapper.appendChild(strikeEl);
+  });
 }
 
 
@@ -828,6 +864,12 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
 
     myGrid.appendChild(cell);
   }
+
+  // Render completed lines strike overlays
+  const myGridWrapper = myGrid.parentElement;
+  if (myGridWrapper) {
+    renderStrikeLines(myGridWrapper, me ? me.marked : []);
+  }
 }
 
 function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
@@ -852,6 +894,12 @@ function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
 
     opponentGrid.appendChild(cell);
   }
+
+  // Render completed lines strike overlays
+  const opponentGridWrapper = opponentGrid.parentElement;
+  if (opponentGridWrapper) {
+    renderStrikeLines(opponentGridWrapper, opponent ? opponent.marked : []);
+  }
 }
 
 function renderOpponentEmptyGrid() {
@@ -860,6 +908,12 @@ function renderOpponentEmptyGrid() {
     const cell = document.createElement('div');
     cell.className = 'bingo-cell';
     opponentGrid.appendChild(cell);
+  }
+
+  // Clear strike lines
+  const opponentGridWrapper = opponentGrid.parentElement;
+  if (opponentGridWrapper) {
+    renderStrikeLines(opponentGridWrapper, []);
   }
 }
 

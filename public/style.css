@@ -1188,6 +1188,85 @@ input[type="text"]:focus {
   100% { transform: scale(1.1); }
 }
 
+/* Completed line strike overlay */
+.grid-strike-line {
+  position: absolute;
+  background-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+  border-radius: 4px;
+  z-index: 4; /* below grid overlay blocker (z-index: 5), above cells */
+  pointer-events: none; /* don't block clicks */
+}
+
+/* Rows: Horizontal lines */
+.grid-strike-line.strike-row {
+  height: 6px;
+  left: 3%;
+  width: 94%;
+  transform: translateY(-50%) scaleX(0);
+  transform-origin: left center;
+  animation: strikeRevealX 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.grid-strike-line.strike-row-0 { top: 10%; }
+.grid-strike-line.strike-row-1 { top: 30%; }
+.grid-strike-line.strike-row-2 { top: 50%; }
+.grid-strike-line.strike-row-3 { top: 70%; }
+.grid-strike-line.strike-row-4 { top: 90%; }
+
+/* Cols: Vertical lines */
+.grid-strike-line.strike-col {
+  width: 6px;
+  top: 3%;
+  height: 94%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: center top;
+  animation: strikeRevealY 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.grid-strike-line.strike-col-0 { left: 10%; }
+.grid-strike-line.strike-col-1 { left: 30%; }
+.grid-strike-line.strike-col-2 { left: 50%; }
+.grid-strike-line.strike-col-3 { left: 70%; }
+.grid-strike-line.strike-col-4 { left: 90%; }
+
+/* Diagonals */
+.grid-strike-line.strike-diag {
+  height: 6px;
+  top: 50%;
+  left: 50%;
+  width: 128%; /* diagonal length of a square */
+  transform-origin: center center;
+}
+
+.grid-strike-line.strike-diag-1 {
+  /* top-left to bottom-right */
+  transform: translate(-50%, -50%) rotate(45deg) scaleX(0);
+  animation: strikeRevealDiag1 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.grid-strike-line.strike-diag-2 {
+  /* bottom-left to top-right */
+  transform: translate(-50%, -50%) rotate(-45deg) scaleX(0);
+  animation: strikeRevealDiag2 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes strikeRevealX {
+  to { transform: translateY(-50%) scaleX(1); }
+}
+
+@keyframes strikeRevealY {
+  to { transform: translateX(-50%) scaleY(1); }
+}
+
+@keyframes strikeRevealDiag1 {
+  from { transform: translate(-50%, -50%) rotate(45deg) scaleX(0); }
+  to { transform: translate(-50%, -50%) rotate(45deg) scaleX(1); }
+}
+
+@keyframes strikeRevealDiag2 {
+  from { transform: translate(-50%, -50%) rotate(-45deg) scaleX(0); }
+  to { transform: translate(-50%, -50%) rotate(-45deg) scaleX(1); }
+}
+
 /* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
   main {
