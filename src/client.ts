@@ -12,6 +12,9 @@ const ACCENT_COLORS: Record<string, string> = {
   flamingo: '#f2cdcd'
 };
 
+// Chat limits from environment variables
+const CHAT_MAX_LENGTH = parseInt(process.env.CHAT_MAX_LENGTH || '125', 10);
+
 // Global Client State
 let socket: WebSocket | null = null;
 let playerId = localStorage.getItem('bingo-player-id') || '';
@@ -138,7 +141,7 @@ accentSelector?.addEventListener('click', (e) => {
   if (target.classList.contains('color-btn')) {
     const colorName = target.getAttribute('data-color') || 'mauve';
     setAccentColor(colorName);
-    
+
     // Collapse immediately
     accentSelector.classList.remove('expanded');
     accentSelector.classList.add('closed');
@@ -194,13 +197,13 @@ btnExitConfirmYes.addEventListener('click', () => {
 chatFab.addEventListener('click', () => {
   isChatOpen = true;
   chatDrawer.classList.add('open');
-  
+
   // Reset unread count
   unreadMessagesCount = 0;
   chatUnreadBadge.textContent = '0';
   chatUnreadBadge.classList.add('hidden');
   chatUnreadBadge.classList.remove('shake');
-  
+
   // Focus input
   setTimeout(() => chatInput.focus(), 150);
 });
@@ -217,7 +220,7 @@ chatInput.addEventListener('input', () => {
     type: 'SET_TYPING',
     payload: { typing: true }
   });
-  
+
   if (typingTimeout) clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => {
     sendWSMessage({
@@ -232,18 +235,18 @@ chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
   if (text.length === 0) return;
-  if (text.length > 200) {
-    showToast('Message cannot exceed 200 characters.', 'error');
+  if (text.length > CHAT_MAX_LENGTH) {
+    showToast(`Message cannot exceed ${CHAT_MAX_LENGTH} characters.`, 'error');
     return;
   }
-  
+
   sendWSMessage({
     type: 'SEND_CHAT',
     payload: { text }
   });
-  
+
   chatInput.value = '';
-  
+
   // Send typing finished signal
   if (typingTimeout) clearTimeout(typingTimeout);
   sendWSMessage({
@@ -316,7 +319,7 @@ function loadSavedUser() {
 
 function initChat() {
   chatMessages.innerHTML = '';
-  
+
   // Add initial guidelines message
   const systemMsg = document.createElement('div');
   systemMsg.className = 'chat-msg system';
@@ -325,15 +328,18 @@ function initChat() {
   bodyDiv.textContent = '📢 Please be respectful with each other.';
   systemMsg.appendChild(bodyDiv);
   chatMessages.appendChild(systemMsg);
-  
+
   unreadMessagesCount = 0;
   chatUnreadBadge.textContent = '0';
   chatUnreadBadge.classList.add('hidden');
   chatUnreadBadge.classList.remove('shake');
-  
+
   isChatOpen = false;
   chatDrawer.classList.remove('open');
   chatFab.classList.add('hidden');
+
+  // Set input maxlength dynamically
+  chatInput.setAttribute('maxlength', CHAT_MAX_LENGTH.toString());
 }
 
 function appendChatMessage(payload: { senderId: string; senderName: string; text: string; timestamp: number }) {
@@ -344,7 +350,7 @@ function appendChatMessage(payload: { senderId: string; senderName: string; text
 
   if (payload.senderId === 'server') {
     msgEl.classList.add('system');
-    
+
     const bodyEl = document.createElement('div');
     bodyEl.className = 'chat-msg-body';
     bodyEl.textContent = payload.text;
@@ -375,7 +381,7 @@ function appendChatMessage(payload: { senderId: string; senderName: string; text
   }
 
   chatMessages.appendChild(msgEl);
-  
+
   // Auto-scroll
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -384,7 +390,7 @@ function appendChatMessage(payload: { senderId: string; senderName: string; text
     unreadMessagesCount++;
     chatUnreadBadge.textContent = unreadMessagesCount.toString();
     chatUnreadBadge.classList.remove('hidden');
-    
+
     // Shake animation
     chatUnreadBadge.classList.remove('shake');
     void chatUnreadBadge.offsetWidth; // force reflow
@@ -409,7 +415,7 @@ function cleanupRoomState() {
   btnRequestRematch.disabled = false;
   rematchStatusText.textContent = '';
   chkOpponentStart.checked = false;
-  
+
   // Reset chat
   initChat();
 }
@@ -510,7 +516,7 @@ function handleCreateRoom() {
     showToast('Please enter a username first.', 'error');
     return;
   }
-  
+
   username = enteredUsername;
   localStorage.setItem('bingo-username', username);
 
@@ -563,9 +569,9 @@ function joinGameRoom() {
     showToast('Please enter your username to join the room.', 'info');
     return;
   }
-  
+
   initChat();
-  
+
   switchView('room');
   roomCodeDisplay.textContent = roomCode;
   connectWebSocket();
@@ -650,7 +656,7 @@ function updateRoomUI(state: RoomStatePayload) {
   currentRoomState = state;
   roomCode = state.roomCode;
   roomCodeDisplay.textContent = state.roomCode;
-  
+
   // Make sure current URL is updated to match room code (useful for popstates/initial creators)
   if (window.location.pathname !== `/room/${state.roomCode}`) {
     window.history.replaceState(null, '', `/room/${state.roomCode}`);
@@ -792,11 +798,11 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
     opponentGridOverlay.classList.remove('hidden');
     blockerMessage.textContent = 'Share the Room Code to invite a friend...';
     renderOpponentEmptyGrid();
-  } 
+  }
   else if (state.phase === 'setup') {
     // Both players present, setting up boards
     renderOpponentEmptyGrid();
-    
+
     myInstruction.classList.remove('hidden');
     if (me && me.ready) {
       // Creator or Joiner is ready, wait for opponent
@@ -810,25 +816,25 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
       myGrid.classList.add('editing');
       renderUnusedNumbers();
     }
-  } 
+  }
   else if (state.phase === 'match') {
     // Match running
     myGrid.classList.add('match-active');
-    
+
     // Render opponent grid
     renderOpponentGrid(state, opponent);
-    
+
     // Enable instructions and turn indicator text at top of boards
     myInstruction.classList.remove('hidden');
     opponentInstruction.classList.remove('hidden');
 
     // Removed 3rd set of header (turnBanner) in active match
-    
+
     if (state.turnPlayerId === playerId) {
       myInstruction.innerHTML = `<span style="color: var(--accent); font-weight: 700;">YOUR TURN</span> — Double-click a tile to call!`;
       myStatusBadge.textContent = 'YOUR TURN';
       myStatusBadge.className = 'status-badge ready';
-      
+
       const oppName = opponent ? opponent.username : 'Opponent';
       opponentInstruction.textContent = 'Waiting for you...';
       opponentStatusBadge.textContent = 'WAITING';
@@ -838,16 +844,16 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
       myInstruction.textContent = `Waiting for ${oppName} to call...`;
       myStatusBadge.textContent = 'WAITING';
       myStatusBadge.className = 'status-badge';
-      
+
       opponentInstruction.innerHTML = `<span style="color: var(--accent); font-weight: 700;">THEIR TURN</span>`;
       opponentStatusBadge.textContent = 'THEIR TURN';
       opponentStatusBadge.className = 'status-badge ready';
     }
-  } 
+  }
   else if (state.phase === 'match_end') {
     // Match ended
     renderOpponentGrid(state, opponent);
-    
+
     myInstruction.classList.remove('hidden');
     opponentInstruction.classList.remove('hidden');
 
@@ -864,7 +870,7 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
       myInstruction.innerHTML = `<span style="color: var(--green); font-weight: 700;">BINGO! YOU WON! 🎉</span>`;
       myStatusBadge.textContent = 'WINNER';
       myStatusBadge.className = 'status-badge ready';
-      
+
       opponentInstruction.textContent = 'Defeated';
       opponentStatusBadge.textContent = 'DEFEATED';
       opponentStatusBadge.className = 'status-badge';
@@ -872,7 +878,7 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
       myInstruction.textContent = 'Defeated';
       myStatusBadge.textContent = 'DEFEATED';
       myStatusBadge.className = 'status-badge';
-      
+
       opponentInstruction.innerHTML = `<span style="color: var(--green); font-weight: 700;">WINNER 🎉</span>`;
       opponentStatusBadge.textContent = 'WINNER';
       opponentStatusBadge.className = 'status-badge ready';
@@ -926,7 +932,7 @@ function renderPhaseView(state: RoomStatePayload, me?: any, opponent?: any) {
 
 function renderMyGrid(state: RoomStatePayload, me: any) {
   myGrid.innerHTML = '';
-  
+
   // Helper to save the value currently in the input box to the active cell
   const saveActiveInput = (index: number) => {
     const input = myGrid.querySelector('input');
@@ -955,14 +961,14 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
   for (let i = 0; i < 25; i++) {
     const val = localGrid[i];
     const isMarked = me ? me.marked[i] : false;
-    
+
     const cell = document.createElement('div');
     cell.className = 'bingo-cell';
     if (isMarked) cell.classList.add('marked');
     if (val !== null && state.lastCalledNumber !== null && val === state.lastCalledNumber) {
       cell.classList.add('last-called');
     }
-    
+
     // In setup mode & editable, add manual editing input hooks
     if (state.phase === 'setup' && (!me || !me.ready)) {
       if (activeInputCellIndex === i) {
@@ -971,7 +977,7 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
         input.type = 'number';
         input.min = '1';
         input.max = '25';
-        
+
         // Suggest the next sequential unused number if cell is currently blank
         let startVal = val;
         if (startVal === null) {
@@ -991,7 +997,7 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
           if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
             saveActiveInput(i);
-            
+
             // Set next cell index
             activeInputCellIndex = (i + 1) % 25;
             renderMyGrid(state, me);
@@ -1033,7 +1039,7 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
     } else {
       // Normal display mode
       cell.textContent = val ? val.toString() : '';
-      
+
       // Match phase click logic
       if (state.phase === 'match' && state.turnPlayerId === playerId && !isMarked && val) {
         cell.addEventListener('dblclick', () => {
@@ -1057,7 +1063,7 @@ function renderMyGrid(state: RoomStatePayload, me: any) {
 
 function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
   opponentGrid.innerHTML = '';
-  
+
   if (!opponent || !opponent.grid) {
     renderOpponentEmptyGrid();
     return;
@@ -1066,7 +1072,7 @@ function renderOpponentGrid(state: RoomStatePayload, opponent: any) {
   for (let i = 0; i < 25; i++) {
     const val = opponent.grid[i];
     const isMarked = opponent.marked[i];
-    
+
     const cell = document.createElement('div');
     cell.className = 'bingo-cell';
     cell.textContent = val ? val.toString() : '';
@@ -1130,7 +1136,7 @@ function randomizeLocalGrid() {
   }
   localGrid = nums;
   sendGridToServer();
-  
+
   if (currentRoomState) {
     const me = currentRoomState.players.find(p => p.id === playerId);
     renderMyGrid(currentRoomState, me);
@@ -1176,7 +1182,7 @@ function setAccentColor(colorName: string) {
 
   // Set CSS Property
   document.documentElement.style.setProperty('--accent', hex);
-  
+
   // Set RGB property for glass-morphic highlights
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);

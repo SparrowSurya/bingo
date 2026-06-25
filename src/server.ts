@@ -10,9 +10,14 @@ interface RateLimiter {
 
 const rateLimiters = new Map<string, RateLimiter>();
 
+// Read chat constants from environment variables
+const CHAT_LIMIT = parseInt(process.env.CHAT_LIMIT || '5', 10);
+const CHAT_REFILL_RATE = parseInt(process.env.CHAT_REFILL_RATE || '1000', 10);
+const CHAT_MAX_LENGTH = parseInt(process.env.CHAT_MAX_LENGTH || '200', 10);
+
 function checkRateLimit(playerId: string): boolean {
-  const LIMIT = 5; // max tokens
-  const REFILL_RATE = 1000; // 1 token per 1000ms
+  const LIMIT = CHAT_LIMIT; // max tokens
+  const REFILL_RATE = CHAT_REFILL_RATE; // refill duration in ms
   
   let limiter = rateLimiters.get(playerId);
   const now = Date.now();
@@ -58,6 +63,9 @@ async function bundleClient() {
     const res = await Bun.build({
       entrypoints: ['./src/client.ts'],
       minify: true,
+      define: {
+        'process.env.CHAT_MAX_LENGTH': JSON.stringify(process.env.CHAT_MAX_LENGTH || '200')
+      }
     });
     if (res.success && res.outputs.length > 0) {
       clientJsText = await res.outputs[0].text();
@@ -306,7 +314,7 @@ const server = Bun.serve<WebSocketData>({
             break;
           case 'SEND_CHAT': {
             const text = parsed.payload.text?.trim();
-            if (!text || text.length === 0 || text.length > 200) {
+            if (!text || text.length === 0 || text.length > CHAT_MAX_LENGTH) {
               break;
             }
             if (!checkRateLimit(playerId)) {

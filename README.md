@@ -25,8 +25,17 @@ Designed with the **Catppuccin Mocha** dark theme palette and styled with a flat
   1. **Shuffle Grid:** Instantly generates a randomized sequence of 1–25.
   2. **Sequential Click-Fill:** Clicking an empty cell places the next unused number (1, 2, 3...).
   3. **Manual Typing:** Click a filled cell to input or change a specific number manually (automatic swapping occurs if the number is already on the board).
+* **Interactive B-I-N-G-O Progress Badges:** A row of styled circular letter badges under usernames that light up with a glowing accent color and bounce animation when lines are completed.
+* **Clean Matchup Bar & Ready Indicators:** Dynamic `YOUR-NAME VS OPPONENT-NAME` matchup text centered in the room status bar at all times, with real-time green pulsing readiness dots.
+* **Staggered Accent Selector:** Single accent trigger circle that rotates on hover and slides out available options right-to-left with staggered animation delays, collapsing instantly on click.
+* **Cross Marks & Full-Line Strike Overlays:** Cells are marked with a `3px` thick cross (X) and completed rows, columns, or diagonals are crossed out dynamically by animated overlays that expand across the grid.
+* **Real-Time Room Chat Drawer:**
+  - Float FAB at bottom right with integer unread badges vibrating on new messages.
+  - Smooth drawer sliding open/close animations.
+  - Distinct message bubble styling (Server system logs, Opponent grey bubbles, Player accent-glowing bubbles).
+  - Secure XSS escaping and dynamic typing indicators.
+  - **Token-bucket Rate Limiter** to prevent spam and flood messages.
 * **Rematch flow:** Accept/decline prompts allow players to immediately transition back to the setup phase with empty boards.
-* **Theme customizer:** Select your preferred color accent (Mauve, Blue, Teal, etc.) from the persistent header, stored in the browser's `localStorage`.
 * **Responsive Layout:** Playable on both desktop monitors and mobile touchscreens.
 
 ---
@@ -72,6 +81,20 @@ bun run start
 
 ### 3. Open the app
 Navigate to [http://localhost:3000](http://localhost:3000) in your web browsers. Open two windows side-by-side to play the game!
+
+---
+
+## ⚙️ Environment Variables
+
+The server and client configurations can be customized using the following environment variables:
+
+| Variable | Description |
+| :--- | :--- | :--- |
+| `HOSTNAME` | Server binding address |
+| `PORT` | Network port for web server & WebSockets |
+| `CHAT_MAX_LENGTH` | Maximum allowed character length per message |
+| `CHAT_LIMIT` | Token bucket capacity for rate-limiting chat |
+| `CHAT_REFILL_RATE` | Delay in milliseconds to refill 1 message token |
 
 ---
 
