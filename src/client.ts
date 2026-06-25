@@ -563,8 +563,18 @@ function handleJoinRoom() {
 
 function joinGameRoom() {
   if (!username) {
+    username = localStorage.getItem('bingo-username') || '';
+    if (username) {
+      usernameInput.value = username;
+    }
+  }
+
+  if (!username) {
     // If username is not set, we must prompt the user
     // We render the username prompt inline in the landing view
+    if (roomCode) {
+      joinCodeInput.value = roomCode;
+    }
     switchView('landing');
     showToast('Please enter your username to join the room.', 'info');
     return;
